@@ -57,7 +57,7 @@ if __name__ == '__main__':
         frame = feed.read()
 
         # Find triangles
-        centers = find_triangles(frame, (255, 0, 0), 1000)
+        centers = find_triangles(frame, "blue")
         for center in centers:
             cv2.circle(frame, center, 5, (0, 0, 255), -1)
         print(centers)
