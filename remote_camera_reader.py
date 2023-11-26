@@ -5,7 +5,9 @@
 #          stream on your local computer
 # AUTHOR: this dude on stackoverflow tbh https://stackoverflow.com/a/54755738
 
-import os, cv2, threading, queue
+import os, cv2, threading, queue, time
+
+from shape_finders import find_triangles
 
 ADDRESS = os.environ.get("STREAM_ADDRESS","192.168.0.89")
 PORT = os.environ.get("STREAM_PORT", 9000)
@@ -54,6 +56,11 @@ if __name__ == '__main__':
     while True:
         frame = feed.read()
 
+        # Find triangles
+        centers = find_triangles(frame, (255, 0, 0), 1000)
+        for center in centers:
+            cv2.circle(frame, center, 5, (0, 0, 255), -1)
+        print(centers)
         cv2.imshow('Camera Feed', frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):

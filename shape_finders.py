@@ -3,21 +3,25 @@ import numpy as np
 
 
 def find_triangles(image, target_color, color_tolerance=100):
-  # finding contours (edges of shapes) in image
-  edges = cv2.Canny(image, 30, 200)
-  contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
+  
+  image = cv2.GaussianBlur(image, (5, 5), 0)
+  hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+  lower_bound = np.array([100, 100, 100])
+  upper_bound = np.array([300, 255, 255])
+  mask = cv2.inRange(hsv, lower_bound, upper_bound)
+  contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+  cv2.imshow('mask', mask)
   centers = []
 
   for contour in contours:
-    approx = cv2.approxPolyDP(contour, 1.95, True)
+    approx = cv2.approxPolyDP(contour, 3.5, True)
+    area = cv2.contourArea(contour)
 
-    if len(approx) == 3:
+    if len(approx) == 3 and area > 1000:
       x_coord = sum([item[0][0] for item in approx]) // len(approx)
       y_coord = sum([item[0][1] for item in approx]) // len(approx)
 
-      if color_distance(color_at(image, (x_coord, y_coord)), target_color) < color_tolerance:
-        centers.append( (x_coord, y_coord) )
+      centers.append( (x_coord, y_coord) )
 
   return centers
 

@@ -13,7 +13,10 @@ PORT = os.environ.get("LOCAL_PORT", 11295)
 FREQUENCY = 2
 
 SCAN_ROTATION_STEP = 10
-SCAN_MAX_TILT = 1
+SCAN_MAX_TILT = 0.3
+
+LASER_TARGET = (300, 300) # Slightly below center, will need to adjust
+
 
 class VisionModule(rm.ProtoModule):
     # sets up the module (subscriptions, connection to server, etc)
@@ -52,11 +55,30 @@ class VisionModule(rm.ProtoModule):
         rotation_msg.max_speed = 0.5
         self.write(rotation_msg.SerializeToString(), MsgType.ROTATION_COMMAND)
     
+    def turn_to_target(self, target):
+        # Target is an x, y tuple representing pixel in the camera we want to turn to
+        # If far enough away, turn to target
+        if (target[0] - LASER_TARGET[0]) ** 2 + (target[1] - LASER_TARGET[1]) ** 2 > 1000:
+            rotation_msg = RotationCommand()
+            rotation_msg.position = (target[0] - LASER_TARGET[0]) / 10
+            rotation_msg.max_speed = 0.5
+            self.write(rotation_msg.SerializeToString(), MsgType.ROTATION_COMMAND)
+            return False
+        
+        # If closer but not close enough, turn a fixed amount
+        elif (target[0] - LASER_TARGET[0]) ** 2 + (target[1] - LASER_TARGET[1]) ** 2 > 100:
+            rotation_msg = RotationCommand()
+            rotation_msg.position = 5
+            rotation_msg.max_speed = 0.5
+            self.write(rotation_msg.SerializeToString(), MsgType.ROTATION_COMMAND)
+            return False
+        
+        # If close enough, stop turning
+        return True
 
 def main():
     module = VisionModule(ADDRESS, PORT)
     module.run()
-
 
 if __name__ == "__main__":
     main()
