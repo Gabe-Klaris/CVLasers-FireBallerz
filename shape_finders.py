@@ -10,6 +10,7 @@ COLOR_BOUNDS = {
 
 
 def find_triangles(image, color):
+        # finding contours (edges of shapes) in image
     image = cv2.GaussianBlur(image, (5, 5), 0)
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -17,7 +18,6 @@ def find_triangles(image, color):
     
     mask = cv2.inRange(hsv, lower_bound, upper_bound)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    cv2.imshow('mask', mask)
     centers = []
 
     for contour in contours:
@@ -32,35 +32,40 @@ def find_triangles(image, color):
 
     return centers
 
-def find_squares(image, target_color, color_tolerance=100):
-    # finding contours (edges of shapes) in image
-    edges = cv2.Canny(image, 30, 200)
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+def find_squares(image, color):
+        # finding contours (edges of shapes) in image
+    image = cv2.GaussianBlur(image, (5, 5), 0)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
+    lower_bound, upper_bound = COLOR_BOUNDS[color]
+    
+    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     centers = []
 
     for contour in contours:
-        approx = cv2.approxPolyDP(contour, 3, True)
-
-        if len(approx) == 4:
+        approx = cv2.approxPolyDP(contour, 5, True)
+        area = cv2.contourArea(contour)
+        
+        if len(approx) == 4 and area > 1000:
             x_coord = sum([item[0][0] for item in approx]) // len(approx)
             y_coord = sum([item[0][1] for item in approx]) // len(approx)
 
-            if color_distance(color_at(image, (x_coord, y_coord)), target_color) < color_tolerance:
-                centers.append( (x_coord, y_coord) )
+            centers.append( (x_coord, y_coord) )
 
     return centers
 
-def find_circles(image, target_color, color_tolerance=100):
-    # Convert the image to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
+def find_circles(image, color):
     # Apply Gaussian blur to reduce noise
-    gray = cv2.GaussianBlur(gray, (9, 9), 2)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    lower_bound, upper_bound = COLOR_BOUNDS[color]
     
+    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+
     # Use the Hough Circle Transform to detect circles
     circles = cv2.HoughCircles(
-        gray,
+        mask,
         cv2.HOUGH_GRADIENT,
         dp=1,
         minDist=20,
@@ -75,28 +80,28 @@ def find_circles(image, target_color, color_tolerance=100):
         circles = np.uint16(np.around(circles))
         for circle in circles[0, :]:
             center = (circle[0], circle[1])
-            if color_distance(color_at(image, center), target_color) < color_tolerance:
-                centers.append(center)
     return centers
 
-def find_octagons(image, target_color, color_tolerance=100):
+def find_octagons(image, color):
         # finding contours (edges of shapes) in image
-    edges = cv2.Canny(image, 30, 200)
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    image = cv2.GaussianBlur(image, (5, 5), 0)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
+    lower_bound, upper_bound = COLOR_BOUNDS[color]
+    
+    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     centers = []
-    circle_centers = find_circles(image, target_color, color_tolerance=color_tolerance)[1]
 
     for contour in contours:
-        approx = cv2.approxPolyDP(contour, 3, True)
-
-        if len(approx) >= 8:
+        approx = cv2.approxPolyDP(contour, 5, True)
+        area = cv2.contourArea(contour)
+        
+        if len(approx) == 8 and area > 1000:
             x_coord = sum([item[0][0] for item in approx]) // len(approx)
             y_coord = sum([item[0][1] for item in approx]) // len(approx)
 
-            # Check if it's too close to a circle
-            if (not circle_centers or min([(circle_x - x_coord)**2 + (circle_y - y_coord)**2 for (circle_x, circle_y) in circle_centers]) >= 100) and color_distance(color_at(image, (x_coord, y_coord)), target_color) < color_tolerance:
-                centers.append( (x_coord, y_coord) )
+            centers.append( (x_coord, y_coord) )
 
     return centers
 
