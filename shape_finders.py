@@ -55,17 +55,13 @@ def find_squares(image, color):
 
     return centers
 
-def find_circles(image, color):
+def find_circles(image, target_color, color_tolerance=100):
     # Apply Gaussian blur to reduce noise
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    lower_bound, upper_bound = COLOR_BOUNDS[color]
+    gray = cv2.GaussianBlur(image, (9, 9), 2)
     
-    mask = cv2.inRange(hsv, lower_bound, upper_bound)
-
     # Use the Hough Circle Transform to detect circles
     circles = cv2.HoughCircles(
-        mask,
+        gray,
         cv2.HOUGH_GRADIENT,
         dp=1,
         minDist=20,
@@ -80,6 +76,8 @@ def find_circles(image, color):
         circles = np.uint16(np.around(circles))
         for circle in circles[0, :]:
             center = (circle[0], circle[1])
+            if color_distance(color_at(image, center), target_color) < color_tolerance:
+                centers.append(center)
     return centers
 
 def find_octagons(image, color):
