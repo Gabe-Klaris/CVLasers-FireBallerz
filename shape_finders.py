@@ -56,8 +56,11 @@ def find_squares(image, color):
     return centers
 
 def find_circles(image, target_color, color_tolerance=100):
+    # Convert the image to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
     # Apply Gaussian blur to reduce noise
-    gray = cv2.GaussianBlur(image, (9, 9), 2)
+    gray = cv2.GaussianBlur(gray, (9, 9), 2)
     
     # Use the Hough Circle Transform to detect circles
     circles = cv2.HoughCircles(
