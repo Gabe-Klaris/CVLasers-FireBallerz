@@ -2,11 +2,11 @@ import cv2
 import numpy as np
 
 COLOR_BOUNDS = {
-    "blue": (np.array([100, 100, 100]), np.array([150, 255, 255])),
-    "red": (np.array([0, 100, 100]), np.array([100, 255, 255])),
-    "green": (np.array([50, 100, 100]), np.array([150, 255, 255])),
+    "blue": (np.array([90, 100, 100]), np.array([150, 255, 255])),
+    "red": (np.array([0, 100, 100]), np.array([25, 255, 255])),
+    "green": (np.array([50, 100, 100]), np.array([80, 255, 255])),
     "yellow": (np.array([20, 100, 100]), np.array([40, 255, 255])),
-} # FIX THESE LATER THEY ARE NOT CORRECT
+} # FIX THESE LATER THEY ARE Maybe CORRECT
 
 
 def find_triangles(image, color):
@@ -21,9 +21,9 @@ def find_triangles(image, color):
     centers = []
 
     for contour in contours:
-        approx = cv2.approxPolyDP(contour, 3.5, True)
+        approx = cv2.approxPolyDP(contour, 5, True)
         area = cv2.contourArea(contour)
-
+        
         if len(approx) == 3 and area > 1000:
             x_coord = sum([item[0][0] for item in approx]) // len(approx)
             y_coord = sum([item[0][1] for item in approx]) // len(approx)
