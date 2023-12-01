@@ -4,19 +4,25 @@ import numpy as np
 COLOR_BOUNDS = {
     "blue": (np.array([90, 100, 100]), np.array([150, 255, 255])),
     "red": (np.array([0, 100, 100]), np.array([25, 255, 255])),
+    "lower_red": (np.array([170, 100, 100]), np.array([180, 255, 255])),
     "green": (np.array([50, 100, 100]), np.array([80, 255, 255])),
     "yellow": (np.array([20, 100, 100]), np.array([40, 255, 255])),
 } # FIX THESE LATER THEY ARE Maybe CORRECT
 
-
-def find_triangles(image, color):
-        # finding contours (edges of shapes) in image
+def create_mask(image, color):
     image = cv2.GaussianBlur(image, (5, 5), 0)
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     lower_bound, upper_bound = COLOR_BOUNDS[color]
     
     mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    if color == "red":
+        mask2 = cv2.inRange(hsv, COLOR_BOUNDS["lower_red"][0], COLOR_BOUNDS["lower_red"][1])
+        mask = cv2.bitwise_or(mask, mask2)
+    return mask
+
+def find_triangles(image, color):
+    mask = create_mask(image, color)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     centers = []
 
@@ -33,13 +39,7 @@ def find_triangles(image, color):
     return centers
 
 def find_squares(image, color):
-        # finding contours (edges of shapes) in image
-    image = cv2.GaussianBlur(image, (5, 5), 0)
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    lower_bound, upper_bound = COLOR_BOUNDS[color]
-    
-    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    mask = create_mask(image, color)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     centers = []
 
@@ -55,16 +55,12 @@ def find_squares(image, color):
 
     return centers
 
-def find_circles(image, target_color, color_tolerance=100):
-    # Convert the image to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    # Apply Gaussian blur to reduce noise
-    gray = cv2.GaussianBlur(gray, (9, 9), 2)
-    
-    # Use the Hough Circle Transform to detect circles
+def find_circles(image, color):
+    mask = create_mask(image, color)
+    mask = cv2.GaussianBlur(mask, (5, 5), 0)
+
     circles = cv2.HoughCircles(
-        gray,
+        mask,
         cv2.HOUGH_GRADIENT,
         dp=1,
         minDist=20,
@@ -79,18 +75,11 @@ def find_circles(image, target_color, color_tolerance=100):
         circles = np.uint16(np.around(circles))
         for circle in circles[0, :]:
             center = (circle[0], circle[1])
-            if color_distance(color_at(image, center), target_color) < color_tolerance:
-                centers.append(center)
+            centers.append(center)
     return centers
 
 def find_octagons(image, color):
-        # finding contours (edges of shapes) in image
-    image = cv2.GaussianBlur(image, (5, 5), 0)
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    lower_bound, upper_bound = COLOR_BOUNDS[color]
-    
-    mask = cv2.inRange(hsv, lower_bound, upper_bound)
+    mask = create_mask(image, color)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     centers = []
 

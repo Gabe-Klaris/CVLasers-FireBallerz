@@ -7,7 +7,7 @@
 
 import os, cv2, threading, queue, time
 
-from shape_finders import find_triangles
+from shape_finders import find_triangles, find_circles
 
 ADDRESS = os.environ.get("STREAM_ADDRESS","192.168.0.89")
 PORT = os.environ.get("STREAM_PORT", 9000)
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         frame = feed.read()
 
         # Find triangles
-        centers = find_triangles(frame, "blue")
+        centers = find_circles(frame, "yellow")
         for center in centers:
             cv2.circle(frame, center, 5, (0, 0, 255), -1)
         print(centers)
