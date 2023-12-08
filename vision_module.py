@@ -16,13 +16,25 @@ PORT = os.environ.get("LOCAL_PORT", 11295)
 FREQUENCY = 2
 
 SCAN_ROTATION_STEP = 10
-SCAN_MAX_TILT = 0.3
+SCAN_TILT = (-0.3, 0)
 
 ROTATE_TARGET_MULTIPLIER = 0.07
 TILT_TARGET_MULTIPLIER = 0.003
 
 LASER_TARGET = (300, 240) # Slightly below center, will need to adjust
 
+TARGET_COLOR_KEY = {
+    0: "red",
+    1: "yellow",
+    2: "blue",
+    3: "green"
+}
+TARGET_SHAPE_KEY = {
+    0: find_squares,
+    1: find_circles,
+    2: find_triangles,
+    3: find_octagons
+}
 
 class VisionModule(rm.ProtoModule):
     # sets up the module (subscriptions, connection to server, etc)
@@ -35,9 +47,16 @@ class VisionModule(rm.ProtoModule):
         self.scan_direction = 1 # 1 for up, -1 for down
         self.camera_feed = LocalCameraFeed()
 
+        self.tilt(0)
+        self.current_target_shape = None
+        self.current_target_color = None
+
     # runs every time one of the subscribed-to message types is received
     def msg_received(self, msg, msg_type):
-        # print(msg)
+        if msg_type == MsgType.TARGET:
+            self.current_target_shape = TARGET_SHAPE_KEY[msg.shape]
+            self.current_target_color = TARGET_COLOR_KEY[msg.color]
+            print("Target received: ", msg.shape, msg.color)
         pass
 
     # runs every 1 / FREQUENCY seconds
@@ -54,12 +73,18 @@ class VisionModule(rm.ProtoModule):
         # target_x, target_y = find_triangles(frame, "red")[0]
         # print(target_x)
         # self.rotate_to_target(target_x)
-        center = self.find_target(find_triangles, "yellow")
+        if self.current_target_color is None or self.current_target_shape is None:
+            return
+        self.scan_tick()
+        time.sleep(0.2)
+        center = self.find_target(self.current_target_shape, self.current_target_color)
         print(center)
         if center is not None:
             self.rotate_to_target(center[0])
             self.tilt_to_target(center[1])
-        self.fire()
+            time.sleep(0.3)
+            self.fire()
+            self.current_target_color, self.current_target_shape = None, None
         input("Done!")
 
 
@@ -87,9 +112,9 @@ class VisionModule(rm.ProtoModule):
     def scan_tick(self):
         # Get tilt direction
         if self.scan_direction == 1:
-            tilt = SCAN_MAX_TILT
+            tilt = SCAN_TILT[0]
         else:
-            tilt = -SCAN_MAX_TILT
+            tilt = -SCAN_TILT[1]
         self.scan_direction *= -1
 
         # Write messages to motor module
@@ -103,6 +128,7 @@ class VisionModule(rm.ProtoModule):
     def tilt_to_target(self, target_y):
         # Tilt to target
         self.tilt((target_y - LASER_TARGET[1]) * TILT_TARGET_MULTIPLIER)
+
 
     def rotate(self, angle):
         rotation_msg = RotationCommand()
