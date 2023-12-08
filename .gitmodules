@@ -1,0 +1,3 @@
+[submodule "starter"]
+	path = starter
+	url = https://github.com/Tufts-Robotics-Club/CVLSRS-Starter-Code.git

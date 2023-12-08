@@ -27,7 +27,7 @@ def find_triangles(image, color):
     centers = []
 
     for contour in contours:
-        approx = cv2.approxPolyDP(contour, 5, True)
+        approx = cv2.approxPolyDP(contour, 7, True)
         area = cv2.contourArea(contour)
         
         if len(approx) == 3 and area > 1000:
