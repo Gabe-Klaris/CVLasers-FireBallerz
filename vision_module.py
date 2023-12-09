@@ -56,7 +56,7 @@ class VisionModule(rm.ProtoModule):
         if msg_type == MsgType.TARGET:
             self.current_target_shape = TARGET_SHAPE_KEY[msg.shape]
             self.current_target_color = TARGET_COLOR_KEY[msg.color]
-            print("Target received: ", msg.shape, msg.color)
+            print("Target received: ", TARGET_SHAPE_KEY[msg.shape], TARGET_COLOR_KEY[msg.color])
         pass
 
     # runs every 1 / FREQUENCY seconds
@@ -133,7 +133,7 @@ class VisionModule(rm.ProtoModule):
     def rotate(self, angle):
         rotation_msg = RotationCommand()
         rotation_msg.position = angle
-        rotation_msg.max_speed = 0.5
+        rotation_msg.max_speed = 1
         self.write(rotation_msg.SerializeToString(), MsgType.ROTATION_COMMAND)
 
     def tilt(self, angle):
