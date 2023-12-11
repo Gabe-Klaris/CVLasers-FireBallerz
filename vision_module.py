@@ -8,6 +8,8 @@ from messages import MsgType, message_buffers, TiltCommand, RotationCommand, Las
 from local_camera_reader import LocalCameraFeed
 from shape_finders import find_triangles, find_circles, find_octagons, find_squares
 import time
+import cv2
+import numpy as np
 
 # retrieving address and port of robomodules server (from env vars)
 ADDRESS = os.environ.get("LOCAL_ADDRESS","localhost")
@@ -15,13 +17,13 @@ PORT = os.environ.get("LOCAL_PORT", 11295)
 
 FREQUENCY = 2
 
-SCAN_ROTATION_STEP = 10
-SCAN_TILT = (-0.3, 0)
+SCAN_ROTATION_STEP = 25
+SCAN_TILT = (-1, 0.3)
 
 ROTATE_TARGET_MULTIPLIER = 0.07
 TILT_TARGET_MULTIPLIER = 0.003
 
-LASER_TARGET = (300, 240) # Slightly below center, will need to adjust
+LASER_TARGET = (300, 300) # Slightly below center, will need to adjust
 
 TARGET_COLOR_KEY = {
     0: "red",
@@ -76,16 +78,17 @@ class VisionModule(rm.ProtoModule):
         if self.current_target_color is None or self.current_target_shape is None:
             return
         self.scan_tick()
-        time.sleep(0.2)
+        time.sleep(0.1)
+
         center = self.find_target(self.current_target_shape, self.current_target_color)
-        print(center)
+        
         if center is not None:
+            print("Going to target", center)
             self.rotate_to_target(center[0])
             self.tilt_to_target(center[1])
-            time.sleep(0.3)
+            time.sleep(0.2)
             self.fire()
             self.current_target_color, self.current_target_shape = None, None
-        input("Done!")
 
 
     def find_target(self, shape_function, color):
@@ -114,12 +117,13 @@ class VisionModule(rm.ProtoModule):
         if self.scan_direction == 1:
             tilt = SCAN_TILT[0]
         else:
-            tilt = -SCAN_TILT[1]
+            tilt = SCAN_TILT[1]
         self.scan_direction *= -1
 
         # Write messages to motor module
         self.tilt(tilt)
-        self.rotate(SCAN_ROTATION_STEP)
+        if self.scan_direction == 1:
+            self.rotate(SCAN_ROTATION_STEP)
     
     def rotate_to_target(self, target_x):
         # Rotate to target
@@ -127,13 +131,13 @@ class VisionModule(rm.ProtoModule):
     
     def tilt_to_target(self, target_y):
         # Tilt to target
-        self.tilt((target_y - LASER_TARGET[1]) * TILT_TARGET_MULTIPLIER)
+        self.tilt((target_y - LASER_TARGET[1]) * TILT_TARGET_MULTIPLIER - SCAN_TILT[max(0, -self.scan_direction)] - 0.2)
 
 
     def rotate(self, angle):
         rotation_msg = RotationCommand()
         rotation_msg.position = angle
-        rotation_msg.max_speed = 1
+        rotation_msg.max_speed = 0.7
         self.write(rotation_msg.SerializeToString(), MsgType.ROTATION_COMMAND)
 
     def tilt(self, angle):
